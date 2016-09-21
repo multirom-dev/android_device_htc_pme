@@ -39,6 +39,7 @@ TARGET_USERIMAGES_USE_EXT4 := true
 TARGET_USERIMAGES_USE_F2FS := true
 BOARD_HAS_NO_SELECT_BUTTON := true
 BOARD_SUPPRESS_SECURE_ERASE := true
+#
 #TARGET_USES_LOGD := true
 
 # Keymaster - Wait for qseecom to load
@@ -50,15 +51,81 @@ TW_THEME := portrait_hdpi
 TW_EXCLUDE_DEFAULT_USB_INIT := true
 TW_HAS_DOWNLOAD_MODE := true
 TW_INCLUDE_CRYPTO := true
-#TW_INCLUDE_NTFS_3G := true
+TW_INCLUDE_NTFS_3G := true
 #TW_INPUT_BLACKLIST := "hbtp_vm"
 TW_NO_EXFAT_FUSE := true
 TARGET_RECOVERY_QCOM_RTC_FIX := true
 TARGET_RECOVERY_DEVICE_MODULES := chargeled libbinder libgui libui libEGL libGLES_trace libGLESv2 libprotobuf-cpp-lite libsync # twrpdec
 TW_RECOVERY_ADDITIONAL_RELINK_FILES := $(OUT)/system/lib64/libbinder.so $(OUT)/system/lib64/libgui.so $(OUT)/system/lib64/libui.so $(OUT)/system/lib64/libEGL.so $(OUT)/system/lib64/libGLES_trace.so $(OUT)/system/lib64/libGLESv2.so $(OUT)/system/lib64/libprotobuf-cpp-lite.so $(OUT)/system/lib64/libsync.so # $(OUT)/recovery/root/sbin/twrpdec
+#
+#TARGET_RECOVERY_DEVICE_MODULES += twrpdec
+#TW_RECOVERY_ADDITIONAL_RELINK_FILES := $(OUT)/recovery/root/sbin/twrpdec
+#TARGET_RECOVERY_DEVICE_MODULES += strace
+#TW_RECOVERY_ADDITIONAL_RELINK_FILES += $(OUT)/utilities/strace       # CM
+#TW_RECOVERY_ADDITIONAL_RELINK_FILES += $(OUT)/system/xbin/strace     # omni
 #TWRP_INCLUDE_LOGCAT := true
 
 # Vendor Init
 TARGET_UNIFIED_DEVICE := true
 TARGET_INIT_VENDOR_LIB := libinit_msm
 TARGET_LIBINIT_DEFINES_FILE := device/htc/pme/recovery/init/init_pme.cpp
+
+
+##==================================
+##  RECOVERY_VARIANT := multirom
+TARGET_RECOVERY_IS_MULTIROM := true
+
+MR_DEVICE_SPECIFIC_VERSION := b
+
+include device/common/version-info/MR_REC_VERSION.mk
+
+ifeq ($(MR_REC_VERSION),)
+MR_REC_VERSION := $(shell date -u +%Y%m%d)-01
+endif
+
+BOARD_MKBOOTIMG_ARGS += --board mrom$(MR_REC_VERSION)
+
+# Override TW_THEME to use MultiROM 1080x1920 theme
+TW_CUSTOM_THEME := bootable/recovery/gui/themes_multirom/1080x1920
+
+# Still needed by MultiROM Boot Menu
+#   from TWRP: setting GGL_PIXEL_FORMAT_RGBA_8888, double buffered, framebuffer: 0 (1440 x 2560)
+MR_PIXEL_FORMAT := "RGBA_8888"
+RECOVERY_GRAPHICS_USE_LINELENGTH := true
+TW_BRIGHTNESS_PATH := /sys/class/leds/lcd-backlight/brightness
+
+# MultiROM config
+MR_DEVICE_VARIANTS := htc_pmeul      #HTC 10 - GSM (PME_UL)
+MR_DEVICE_VARIANTS += htc_pmeuhl     #HTC 10 - Europe (PME_UHL)
+MR_DEVICE_VARIANTS += htc_pmewhl     #HTC 10 - Sprint (PME_WHL)
+MR_DEVICE_VARIANTS += htc_pmewl      #HTC 10 - AT&T/T-Mobile/Verizon (PME_WL)
+MR_INPUT_TYPE := type_b
+MR_INIT_DEVICES := device/htc/pme/multirom/mr_init_devices.c
+MR_DPI := xhdpi
+MR_DPI_MUL := 2.0
+MR_DPI_FONT := 435
+#MR_CONTINUOUS_FB_UPDATE := true
+
+MR_DEVICE_HOOKS := device/htc/pme/multirom/mr_hooks.c
+MR_DEVICE_HOOKS_VER := 6
+
+MR_FSTAB := device/htc/pme/multirom/mrom.fstab
+MR_USE_MROM_FSTAB := true
+
+MR_ENCRYPTION := true
+MR_ENCRYPTION_SETUP_SCRIPT := device/htc/pme/multirom/mr_cp_crypto.sh
+MR_ENCRYPTION_FAKE_PROPERTIES := true
+MR_ENCRYPTION_FAKE_PROPERTIES_EXTRAS := device/htc/pme/multirom/mr_fake_properties.c
+
+# not just yet :(
+MR_KEXEC_MEM_MIN := 0x03200000
+MR_KEXEC_DTB := true
+
+MR_NO_KEXEC := enabled
+# possible options:
+#       1 true allowed      # NO_KEXEC_DISABLED =  0x00,   // no-kexec is disabled (ie it is built, but needs to be manually enabled)
+#       2 enabled           # NO_KEXEC_ALLOWED  =  0x01,   // "Use no-kexec only when needed"
+#       3 ui_confirm        # NO_KEXEC_CONFIRM  =  0x02,   // "..... but also ask for confirmation"
+#       4 ui_choice         # NO_KEXEC_CHOICE   =  0x04,   // "Ask whether to kexec or use no-kexec"
+#       5 forced            # NO_KEXEC_FORCED   =  0x08,   // "Always force using no-kexec workaround"
+# any other setting won't build it at all
